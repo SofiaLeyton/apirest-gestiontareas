@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: todo-api
+  namespace: todo-app
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: todo-api
+
+  template:
+    metadata:
+      labels:
+        app: todo-api
+
+    spec:
+      containers:
+        - name: todo-api
+          image: ghcr.io/USUARIO/REPO/todo-api:latest
+
+          ports:
+            - containerPort: 5000

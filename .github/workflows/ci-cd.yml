@@ -1,0 +1,62 @@
+name: CI-CD
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-build-security:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: |
+          pytest --cov=src tests/
+
+      - name: Run lint
+        run: |
+          flake8 src
+
+      - name: Security scan
+        run: |
+          bandit -r src
+          pip-audit
+
+      - name: Build Docker image
+        run: |
+          docker build -t todo-api:${{ github.sha }} .
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        run: |
+          docker tag todo-api:${{ github.sha }} ghcr.io/${{ github.repository }}/todo-api:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/todo-api:${{ github.sha }}
